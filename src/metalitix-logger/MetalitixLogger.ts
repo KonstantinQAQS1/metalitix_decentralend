@@ -76,6 +76,7 @@ interface IMtxPostBody {
     hasConnectedWeb3: boolean | null;
     position?: { x: number; y: number; z: number };
     direction?: { x: number; y: number; z: number };
+    local: true;
     [key: string]: any;
   };
   apiver: string;
@@ -90,19 +91,25 @@ interface IMtxPostBody {
 export class MetalitixLogger {
   private sessionId: string | null = null;
   private apiver = "v2";
-
   private lastTimeListener?: ISystem;
   private direct_path: string = "https://app.metalitix.com/";
   private direct: Direct = Direct.dev;
+  private userId: string | null = null;
   private customFields: {
-    [key: string]: any
-  } = {}
+    [key: string]: any;
+  } = {};
+  private hasConnectedWeb3: boolean | null = null;
+  private userMetadata: Partial<IUserMetadata> = {
+    systemInfo: {},
+  };
+  private records_to_send: IMtxPostBody[] = [];
+  private interval: number = 0.5;
 
-  setCustomField(key: string, value: string | boolean | number){
-    this.customFields[key] = value;
+  constructor(private appKey: string) {
+    this.setUpDirect();
   }
 
-  setUpDirect(){
+  private setUpDirect() {
     if (this.direct == Direct.dev) {
       this.direct_path = "https://metalitix-dev.aircards.io/";
     } else if (this.direct == Direct.stage) {
@@ -112,17 +119,7 @@ export class MetalitixLogger {
     }
   }
 
-  constructor(private appKey: string) {
-    this.setUpDirect();
-  }
-
-  private userId: string | null = null;
-  private hasConnectedWeb3: boolean | null = null;
-  private userMetadata: Partial<IUserMetadata> = {
-    systemInfo: {},
-  };
-
-  private ComputeRecordData(
+  ComputeRecordData(
     recordType: RecordTypes,
     additionalData?: {
       userEvent?: IEventData;
@@ -144,11 +141,10 @@ export class MetalitixLogger {
         },
         direction: {
           x: (Camera.instance.rotation.eulerAngles.x * Math.PI) / 180,
-          y:
-            -(Camera.instance.rotation.eulerAngles.y * Math.PI) / 180 -
-            Math.PI / 2,
+          y: (Camera.instance.rotation.eulerAngles.y * Math.PI) / 180,
           z: (Camera.instance.rotation.eulerAngles.z * Math.PI) / 180,
         },
+        local: true,
       },
       apiver: this.apiver,
       userMeta: {},
@@ -164,14 +160,12 @@ export class MetalitixLogger {
           : undefined,
     };
 
-    for(let i in this.customFields){
+    for (let i in this.customFields) {
       record.data[i] = this.customFields[i];
     }
 
     return record;
   }
-
-  private records_to_send: IMtxPostBody[] = [];
 
   private addRecord(recordType: RecordTypes, additionalData?: any) {
     let record = this.ComputeRecordData(recordType, additionalData);
@@ -189,7 +183,6 @@ export class MetalitixLogger {
   }
 
   private async sendRecords(force: boolean = false) {
-
     if (force) {
       fetch(`${this.direct_path}api/v1/xr-analytics`, {
         method: "POST",
@@ -211,7 +204,9 @@ export class MetalitixLogger {
     }
   }
 
-  public interval: number = 0.5;
+  public setCustomField(key: string, value: string | boolean | number) {
+    this.customFields[key] = value;
+  }
 
   public logEvent(data: IEventData) {
     let record = this.ComputeRecordData(RecordTypes.UserInteraction, {

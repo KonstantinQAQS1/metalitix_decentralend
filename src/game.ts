@@ -1,23 +1,38 @@
-import { Direct, MetalitixLogger, UserInteractionTypes } from "./metalitix-logger/MetalitixLogger"
+import {
+  MetalitixLogger,
+  UserInteractionTypes,
+} from "./metalitix-logger/MetalitixLogger";
 
-const logger = new MetalitixLogger("b81704bf-1f4b-4f42-a820-eee4a844c218"); 
+const logger = new MetalitixLogger("f4b9686c-b8ea-493c-8f2d-8eabe6bc93fe");
+logger.setCustomField(
+  "CustomField1",
+  "CustomField1Value-" + Math.floor(Math.random() * 4)
+);
 
 let myEntity = new Entity();
-let sphere = new SphereShape()
-myEntity.addComponent(sphere)
+let sphere = new SphereShape();
+myEntity.addComponent(sphere);
 
-logger.setCustomField("CustomField1", "CustomField1Value-" + Math.floor(Math.random() * 3))
-
-myEntity.addComponent(new OnPointerDown((e) => {
-  logger.logEvent({
-    eventName: "ClickEvent",
-    eventType: UserInteractionTypes.MouseDown,
-    params: {
-      origin: e.origin,
-    }
+myEntity.addComponent(
+  new OnPointerDown((e) => {
+    logger.logEvent({
+      eventName: "ClickEvent",
+      eventType: UserInteractionTypes.MouseDown,
+      params: {
+        origin: e.origin,
+        dclCustomEvent: "dclCustomValue1",
+      },
+    });
   })
-}))
+);
 
-engine.addEntity(myEntity)
+engine.addEntity(myEntity);
+
+const myCube = new Entity();
+myCube.addComponent(
+  new Transform({ position: new Vector3(8, 1, 8), scale: new Vector3(2, 2, 2) })
+);
+myCube.addComponent(new PlaneShape());
+engine.addEntity(myCube);
 
 logger.startSesttion();
